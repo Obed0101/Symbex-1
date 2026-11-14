@@ -83,7 +83,7 @@ def test_selection():
 def test_collision_integration(monkeypatch):
     class FakeRng:
         def __init__(self):
-            self.values = iter([2, 10, 1, 1, 1, 10, 2, 0, 0])
+            self.values = iter([2, 10, 1, 1, 1, 10, 2] + [0, 0] * 32)
 
         def integers(self, low, high, size=None, dtype=None):
             if size is not None:
@@ -92,10 +92,10 @@ def test_collision_integration(monkeypatch):
 
     monkeypatch.setattr(synth.np.random, 'default_rng', lambda seed: FakeRng())
     data = synth.make(1, 2, 0)
-    np.testing.assert_array_equal(data['centers'], [[5, 5]])
-    np.testing.assert_array_equal(data['center_class'], [2])
-    assert data['y'][0, 0, 0] == 2
-    assert not np.any(np.all(data['x'][0] == synth._palette(2)[0], axis=2))
+    np.testing.assert_array_equal(data['centers'], [[6, 6]])
+    np.testing.assert_array_equal(data['center_class'], [1])
+    assert data['y'][0, 0, 0] == 1
+    assert not np.any(np.all(data['x'][0] == synth._palette(2)[1], axis=2))
 
 
 def test_palette():
@@ -143,7 +143,7 @@ def test_cli_and_import(tmp_path):
         return subprocess.run([sys.executable, str(SCRIPT), *args], cwd=tmp_path, capture_output=True, text=True)
 
     assert run('--help').returncode == 0
-    args = ['--images', '3', '--classes', '2', '--seed', '4', '--out', 'data/out']
+    args = ['--images', '3', '--classes', '2', '--seed', '4', '--out', str(tmp_path / 'data/out')]
     assert run(*args).returncode == 0
     with np.load(tmp_path / 'data/out', allow_pickle=False) as loaded:
         assert_equal(synth.make(3, 2, 4), loaded)

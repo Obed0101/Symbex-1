@@ -9,6 +9,8 @@ import numpy as np
 SIZE = 96
 CELL = 8
 GRID = 12
+HERE = os.path.dirname(os.path.abspath(__file__))
+_MAX_PLACEMENT_ATTEMPTS = 32
 
 
 def _palette(n_classes):
@@ -47,10 +49,15 @@ def _integer(name, value, minimum, maximum=None):
     return value
 
 
-def make(n_images, n_classes, seed, max_objects=3):
-    """Generate data; colliding candidates lose to the closest cell center.
+def _covers_cell(left, top, side, gx, gy):
+    return (left < (gx + 1) * CELL and left + side > gx * CELL
+            and top < (gy + 1) * CELL and top + side > gy * CELL)
 
-    Losing candidates are neither drawn nor included in the center metadata.
+
+def make(n_images, n_classes, seed, max_objects=3):
+    """Generate data, accepting positions that protect earlier center cells.
+
+    Objects without a valid position after bounded retries are dropped.
     """
     n_images = _integer('n_images', n_images, 0, np.iinfo(np.int32).max)
     n_classes = _integer('n_classes', n_classes, 1, 255)
@@ -63,14 +70,23 @@ def make(n_images, n_classes, seed, max_objects=3):
     centers, owners, classes = [], [], []
     for image in range(n_images):
         x[image] = rng.integers(0, 32, size=(SIZE, SIZE, 3), dtype=np.uint8)
-        objects = []
+        objects, occupied = [], set()
         for _ in range(rng.integers(0, max_objects + 1)):
             side = int(rng.integers(10, 21))
             class_id = int(rng.integers(1, n_classes + 1))
-            left = int(rng.integers(0, SIZE - side + 1))
-            top = int(rng.integers(0, SIZE - side + 1))
-            objects.append((left, top, side, class_id))
-        for left, top, side, class_id in _select_objects(objects):
+            for _attempt in range(_MAX_PLACEMENT_ATTEMPTS):
+                left = int(rng.integers(0, SIZE - side + 1))
+                top = int(rng.integers(0, SIZE - side + 1))
+                cx, cy = left + side / 2, top + side / 2
+                gx, gy = min(int(cx // CELL), GRID - 1), min(int(cy // CELL), GRID - 1)
+                if (gx, gy) in occupied or any(
+                    _covers_cell(left, top, side, ox, oy) for ox, oy in occupied
+                ):
+                    continue
+                objects.append((left, top, side, class_id))
+                occupied.add((gx, gy))
+                break
+        for left, top, side, class_id in objects:
             x[image, top:top + side, left:left + side] = palette[class_id - 1]
             cx, cy = left + side / 2, top + side / 2
             gx, gy = min(int(cx // CELL), GRID - 1), min(int(cy // CELL), GRID - 1)
@@ -108,7 +124,7 @@ def main(argv=None):
         data = make(args.images, args.classes, args.seed, args.max_objects)
     except (TypeError, ValueError) as error:
         parser.error(str(error))
-    save(args.out, data)
+    save(os.path.join(HERE, args.out), data)
 
 
 if __name__ == '__main__':
