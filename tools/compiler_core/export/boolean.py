@@ -148,8 +148,9 @@ def _fold_stem_i8(conv, bn):
 
 def fold(model, threshold=0.0):
     """the trained BoolResNet8-like model -> integer network (dict of numpy arrays). A model with head / head_bn (a
-    per-cell detector, FOMO-style) gets a per-cell head; a scalar threshold is folded into the bias of class 1,
-    while a sequence gives one threshold per foreground class. Without a per-cell head, threshold is ignored"""
+    per-cell detector, FOMO-style) gets a per-cell head; a scalar threshold offsets class 1 for two classes, while
+    multiclass heads accept scalar zero or a sequence with one threshold per object class. Without a per-cell head,
+    threshold is ignored"""
     model = model.cpu().eval()
     kind = getattr(model, "stem_kind", "thermometer")
     if kind not in ("thermometer", "int8"):
@@ -184,6 +185,9 @@ def fold(model, threshold=0.0):
     if hasattr(model, "head"):
         if np.ndim(threshold) == 0:
             if threshold:
+                if len(c) > 2:
+                    raise ValueError("boolean export, per-cell head: provide one threshold per object class "
+                                     "for a nonzero threshold with more than 2 classes")
                 c = c.copy()
                 c[1] -= threshold                          # class 1 wins only where its margin passes the threshold
         else:

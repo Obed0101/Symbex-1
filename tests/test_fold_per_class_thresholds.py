@@ -66,6 +66,10 @@ def test_scalar_rule(models, classes, threshold):
     model = fomo(models, classes)
     baseline = boolean.fold(model)
     equal(baseline, boolean.fold(model, 0.0))
+    if classes > 2 and threshold != 0:
+        with pytest.raises(ValueError, match="one threshold per object class"):
+            boolean.fold(model, threshold)
+        return
     expected = copy.deepcopy(baseline)
     c = bias(model)
     if threshold:
