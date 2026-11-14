@@ -1080,7 +1080,14 @@ def main():
     if runs("export"):
         res_export = stage_export(trained, test if test is not None else val, cfg, out_dir, kind, model, train)
         if res_export is None:
-            return
+            header = os.path.join(out_dir, "model_symbex.h")
+            try:
+                os.remove(header)
+            except FileNotFoundError:
+                pass
+            except OSError as e:
+                sys.exit(f"[X] Export failed; could not remove {header}: {e}")
+            sys.exit("[X] Export failed; see the reason above.")
     else:
         res_export = load_export(cfg, out_dir)
     if end == STAGES.index("export"):
