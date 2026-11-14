@@ -1084,7 +1084,7 @@ def main():
             try:
                 os.remove(header)
             except FileNotFoundError:
-                pass
+                sys.exit("[X] Export failed; see the reason above.")
             except OSError as e:
                 sys.exit(f"[X] Export failed; could not remove {header}: {e}")
             sys.exit("[X] Export failed; see the reason above.")
