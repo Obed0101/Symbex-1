@@ -16,7 +16,7 @@ def fake_ports(monkeypatch, names, error=None):
         calls.append(True)
         if error:
             raise error
-        return [types.SimpleNamespace(device=name) for name in names]
+        return [types.SimpleNamespace(device=name, vid=1) for name in names]
 
     serial = types.ModuleType("serial")
     tools = types.ModuleType("serial.tools")
@@ -49,8 +49,8 @@ def test_choose_one(name):
 
 
 @pytest.mark.parametrize("names,message", [
-    ([], "No serial ports found; specify --port."),
-    (["COM3", "/dev/x"], "Multiple serial ports found: COM3, /dev/x; specify --port."),
+    ([], "no serial ports found; specify --port."),
+    (["COM3", "/dev/x"], "multiple serial ports found: COM3, /dev/x; specify --port."),
 ])
 def test_choose_errors(names, message):
     with pytest.raises(ValueError) as exc:
@@ -68,9 +68,9 @@ def test_explicit_port_does_not_import_serial(monkeypatch, port, expected):
 
 
 @pytest.mark.parametrize("names,expected", [
-    ([], "No serial ports found; specify --port."),
+    ([], "no serial ports found; specify --port."),
     (["COM3"], "COM3"),
-    (["COM3", "COM4"], "Multiple serial ports found: COM3, COM4; specify --port."),
+    (["COM3", "COM4"], "multiple serial ports found: COM3, COM4; specify --port."),
 ])
 def test_discovery(monkeypatch, names, expected):
     calls = fake_ports(monkeypatch, names)
@@ -85,13 +85,13 @@ def test_discovery(monkeypatch, names, expected):
 
 def test_import_error(monkeypatch):
     block_serial(monkeypatch)
-    with pytest.raises(RuntimeError, match="Cannot list serial ports: serial unavailable; specify --port"):
+    with pytest.raises(RuntimeError, match="cannot list serial ports: serial unavailable; specify --port"):
         chip_test.resolve_port(None)
 
 
 def test_discovery_oserror(monkeypatch):
     calls = fake_ports(monkeypatch, [], OSError("unavailable"))
-    with pytest.raises(RuntimeError, match="Cannot list serial ports: unavailable; specify --port"):
+    with pytest.raises(RuntimeError, match="cannot list serial ports: unavailable; specify --port"):
         chip_test.resolve_port(None)
     assert len(calls) == 1
 
@@ -117,8 +117,8 @@ def test_main_passes_port(monkeypatch, tmp_path, kernels, explicit):
 
 @pytest.mark.parametrize("kernels", [True, False])
 @pytest.mark.parametrize("names,message", [
-    ([], "[X] No serial ports found; specify --port."),
-    (["COM3", "COM4"], "[X] Multiple serial ports found: COM3, COM4; specify --port."),
+    ([], "[X] no serial ports found; specify --port."),
+    (["COM3", "COM4"], "[X] multiple serial ports found: COM3, COM4; specify --port."),
 ])
 def test_main_selection_errors(monkeypatch, tmp_path, kernels, names, message):
     (tmp_path / "model_symbex.h").write_text("#define SYMBEX_MLP_N_INPUTS 1\n")

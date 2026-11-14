@@ -56,8 +56,8 @@ def choose_port(port_names):
     if len(port_names) == 1:
         return port_names[0]
     if not port_names:
-        raise ValueError("No serial ports found; specify --port.")
-    raise ValueError("Multiple serial ports found: " + ", ".join(port_names) + "; specify --port.")
+        raise ValueError("no serial ports found; specify --port.")
+    raise ValueError("multiple serial ports found: " + ", ".join(port_names) + "; specify --port.")
 
 
 def resolve_port(port):
@@ -67,9 +67,9 @@ def resolve_port(port):
         return port
     try:
         from serial.tools import list_ports
-        names = [p.device for p in list_ports.comports()]
+        names = [p.device for p in list_ports.comports() if p.vid is not None]
     except (ImportError, OSError) as e:
-        raise RuntimeError(f"Cannot list serial ports: {e}; specify --port.") from e
+        raise RuntimeError(f"cannot list serial ports: {e}; specify --port.") from e
     return choose_port(names)
 
 
